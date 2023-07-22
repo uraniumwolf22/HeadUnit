@@ -9,7 +9,7 @@
 #define SCREEN_WIDTH 128     //I think you can derive this one..
 #define SCREEN_HEIGHT 64
 
-#define MAX_DATA_LENGTH 200 //set maximim data length for serial
+#define MAX_DATA_LENGTH 200 //set maximum data length for serial
 #define NUM_STATS 8
 
 #define OLED_RESET -1
@@ -187,18 +187,19 @@ void setup() {
   display.clearDisplay();
 }
 
+//Yeah Yeah there are tons of comments becuse this one hurts my small brain
 char incomingData[MAX_DATA_LENGTH] = "";  //Place to store incoming serial data
 bool SERIAL_RECIEVED = false;             //Place to store current state of serial input buffer
 
 void serialEvent() {                      //runs asyncronously with main loop
   static int dataIdx = 0;                 // Index for storing incoming data
 
-  while (Serial.available()) {                  //check if serial is in buffe
+  while (Serial.available()) {                  //check if serial data is in buffer
     char SerialBuff = (char)Serial.read();      //set input char to serial buffer
 
     if (SerialBuff == '\n') {                   //check if serial communication frame has been terminated
       incomingData[dataIdx] = '\0';             // Terminate the string
-      SERIAL_RECIEVED = true;                   //set String Complete flag to true
+      SERIAL_RECIEVED = true;
       dataIdx = 0;                              //Reset data index 
     } else if (dataIdx < MAX_DATA_LENGTH) {
       incomingData[dataIdx] = SerialBuff;       //store input char at IDX to IncomingData
@@ -213,7 +214,7 @@ void loop() {
     if(!strcmp(incomingData,"r")){topDisplay.cursorIndex += 1;}
     else if(!strcmp(incomingData,"l")){topDisplay.cursorIndex -= 1;}
 
-    if(!strcmp(incomingData,"s")){
+    if(!strcmp(incomingData,"s")){  //has the select button been pressed
       topDisplay.smallActiveStats[topDisplay.cursorIndex] = !topDisplay.smallActiveStats[topDisplay.cursorIndex];
     }
 
