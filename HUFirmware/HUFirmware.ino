@@ -23,7 +23,6 @@
 #define DEBUG_MODE true
 
 
-
 enum DisplayMode {
   //menu modes vv
   MODEMENU,
@@ -37,14 +36,14 @@ enum DisplayMode {
 
 struct Display {        //struct to store display proprties
   Adafruit_SSD1306* ctx;        //I2C Display object
-  DisplayMode activeMode;      //display mode that is currently being rendered 
+  DisplayMode activeMode;      //display mode that is currently being rendered
   DisplayMode displayMode;     //last status screen that was being rendered
 
-  int cursorIndex;
+  int cursor_index;
   //Active statistics masks
-  bool bigActiveStats[NUM_STATS];
-  bool smallActiveStats[NUM_STATS];
-  bool graphActiveStats[NUM_STATS];
+  bool bigstatus_mask[NUM_STATS];
+  bool smallstatus_mask[NUM_STATS];
+  bool graph_mask[NUM_STATS];
 };
 
 struct Statistic {    //stores individual statistic properties
@@ -70,8 +69,6 @@ const struct Statistic stats[NUM_STATS] = {   //list and default values of curre
 
 
 
-
-
 void drawStatMenu(Display& display) {
     const bool flipped = (display.ctx->getRotation() == 2);
     const int offset = flipped ? 0 : 16;
@@ -80,11 +77,11 @@ void drawStatMenu(Display& display) {
     bool selection[NUM_STATS];
     switch (display.displayMode) {
     case BIGSTATUS:
-        memcpy(selection, display.bigActiveStats, sizeof(int) * NUM_STATS); break;
+        memcpy(selection, display.bigstatus_mask, sizeof(int) * NUM_STATS); break;
     case SMALLSTATUS:
-        memcpy(selection, display.smallActiveStats, sizeof(int) * NUM_STATS); break;
+        memcpy(selection, display.smallstatus_mask, sizeof(int) * NUM_STATS); break;
     case GRAPH:
-        memcpy(selection, display.graphActiveStats, sizeof(int) * NUM_STATS); break;
+        memcpy(selection, display.graph_mask, sizeof(int) * NUM_STATS); break;
     }
 
     display.ctx->setTextSize(1); // 7px tall (8 is ideal)
@@ -105,7 +102,7 @@ void drawStatMenu(Display& display) {
             display.ctx->println(stats[i].name);
 
             // Draw cursor if selected
-            if (display.cursorIndex == i) {
+            if (display.cursor_index == i) {
                 display.ctx->drawFastHLine(x + 4, y + 10, 24, SSD1306_BLACK);
             }
         }
@@ -115,7 +112,7 @@ void drawStatMenu(Display& display) {
             display.ctx->println(stats[i].name);
 
             // Draw cursor if selected
-            if (display.cursorIndex == i) {
+            if (display.cursor_index == i) {
                 display.ctx->drawFastHLine(x + 4, y + 10, 24, SSD1306_WHITE);
             }
         }
@@ -131,7 +128,7 @@ void drawStatMenu(Display& display) {
   display.ctx->setCursor(x, y);
   display.ctx->println("BACK");
 
-  if (display.cursorIndex == -1) {
+  if (display.cursor_index == -1) {
     display.ctx->drawFastHLine(x, y+9, text_width, SSD1306_WHITE);
 
   }
@@ -141,17 +138,17 @@ void drawStatMenu(Display& display) {
 
 void drawDisplay(Display &display) {   //draw current mode onto correct display
   switch (display.activeMode) {
-    // case MODEMENU: draw_modemenu(display); break;
+    // case MODEMENU: drawModeMenu(display); break;
     case STATMENU: drawStatMenu(display); break;
-    // case VOLUME: draw_volume(display); break;
-    // case BIGSTATUS: draw_bigstatus(display); break;
-    // case SMALLSTATUS: draw_smallstatus(display); break;
-    // case GRAPH: draw_graph(display); break;
+    // case VOLUME: drawVolume(display); break;
+    // case BIGSTATUS: drawBigStatus(display); break;
+    // case SMALLSTATUS: drawSmallStatus(display); break;
+    // case GRAPH: drawGraph(display); break;
   }
 }
 
-struct Display topDisplay;
-struct Display lowDisplay;
+struct Display top_display;
+struct Display low_display;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); //OLED Display object
 Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -170,40 +167,40 @@ void setup() {
     Serial.println(F("SSD1306 allocation failed"));
     for (;;);
   }
-  topDisplay.ctx = &display;
-  lowDisplay.ctx = &display2;
-  
+  top_display.ctx = &display;
+  low_display.ctx = &display2;
+
 
   //JUST FOR TESTING
 
   //Initial values
-  topDisplay.displayMode = SMALLSTATUS;
-  topDisplay.activeMode = STATMENU;
-  topDisplay.cursorIndex = 1;
-  bool smallStatsMask[NUM_STATS] = {0,0,0,0,0,0,0,0};   //set Initial Status mask
-  memcpy(topDisplay.smallActiveStats, smallStatsMask, sizeof(smallStatsMask)); 
+  top_display.displayMode = SMALLSTATUS;
+  top_display.activeMode = STATMENU;
+  top_display.cursor_index = 1;
+  bool test_mask[NUM_STATS] = {0,0,0,0,0,0,0,0};   //set Initial Status mask
+  memcpy(top_display.smallstatus_mask, test_mask, sizeof(test_mask));
 
-  display2.clearDisplay();
   display.clearDisplay();
+  display2.clearDisplay();
 }
 
 //Yeah Yeah there are tons of comments becuse this one hurts my small brain
-char incomingData[MAX_DATA_LENGTH] = "";  //Place to store incoming serial data
+char incoming_data[MAX_DATA_LENGTH] = "";  //Place to store incoming serial data
 bool SERIAL_RECIEVED = false;             //Place to store current state of serial input buffer
 
 void serialEvent() {                      //runs asyncronously with main loop
-  static int dataIdx = 0;                 // Index for storing incoming data
+  static int data_index = 0;                 // Index for storing incoming data
 
   while (Serial.available()) {                  //check if serial data is in buffer
-    char SerialBuff = (char)Serial.read();      //set input char to serial buffer
+    char serialbuff = (char)Serial.read();      //set input char to serial buffer
 
-    if (SerialBuff == '\n') {                   //check if serial communication frame has been terminated
-      incomingData[dataIdx] = '\0';             // Terminate the string
+    if (serialbuff == '\n') {                   //check if serial communication frame has been terminated
+      incoming_data[data_index] = '\0';             // Terminate the string
       SERIAL_RECIEVED = true;
-      dataIdx = 0;                              //Reset data index 
-    } else if (dataIdx < MAX_DATA_LENGTH) {
-      incomingData[dataIdx] = SerialBuff;       //store input char at IDX to IncomingData
-      dataIdx++;                                //inc data index
+      data_index = 0;                              //Reset data index
+    } else if (data_index < MAX_DATA_LENGTH) {
+      incoming_data[data_index] = SerialBuff;       //store input char at IDX to IncomingData
+      data_index++;                                //inc data index
     }
   }
 }
@@ -211,17 +208,17 @@ void serialEvent() {                      //runs asyncronously with main loop
 void loop() {
   if(SERIAL_RECIEVED){
     //Check if user wants to move cursor, and which direction
-    if(!strcmp(incomingData,"r")){topDisplay.cursorIndex += 1;}
-    else if(!strcmp(incomingData,"l")){topDisplay.cursorIndex -= 1;}
+    if(!strcmp(incoming_data,"r")){top_display.cursor_index += 1;}
+    else if(!strcmp(incoming_data,"l")){top_display.cursor_index -= 1;}
 
-    if(!strcmp(incomingData,"s")){  //has the select button been pressed
-      topDisplay.smallActiveStats[topDisplay.cursorIndex] ^= true;
+    if(!strcmp(incoming_data,"s")){  //has the select button been pressed
+      top_display.smallstatus_mask[top_display.cursor_index] ^= true;
     }
 
     //Render the top display
     SERIAL_RECIEVED = false;
     display.clearDisplay();
-    drawDisplay(topDisplay);
+    drawDisplay(top_display);
     display.display();
   }
 }
