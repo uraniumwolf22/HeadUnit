@@ -215,7 +215,7 @@ void loop() {
     else if(!strcmp(incomingData,"l")){topDisplay.cursorIndex -= 1;}
 
     if(!strcmp(incomingData,"s")){  //has the select button been pressed
-      topDisplay.smallActiveStats[topDisplay.cursorIndex] = !topDisplay.smallActiveStats[topDisplay.cursorIndex];
+      topDisplay.smallActiveStats[topDisplay.cursorIndex] ^= true;
     }
 
     //Render the top display
