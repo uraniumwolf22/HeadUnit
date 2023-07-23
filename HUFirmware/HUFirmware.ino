@@ -218,6 +218,16 @@ Display* active_display = NULL;
 bool selection_mode = false;
 int display_cursor = 0;
 
+void drawSelectionOverlay() {
+  for (int i=0; i<NUM_DISPLAYS; i++) {
+    unsigned int color = (i == display_cursor) ? SSD1306_BLACK : SSD1306_WHITE;
+
+    displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+    displays[i].ctx->fillRect(4, 4, SCREEN_WIDTH-4, SCREEN_HEIGHT-4, SSD1306_INVERSE);
+    displays[i].ctx->display();
+  }
+}
+
 void handleModeMenu(InputType type) {
   if (type == CLICK) {
     // Set currently selected mode
@@ -301,18 +311,15 @@ void handleInput(InputType type) {
         if (display_cursor > NUM_DISPLAYS-1) { display_cursor = 0; }
         else if (display_cursor < 0) { display_cursor = NUM_DISPLAYS-1; }
 
-        // Draw selection overlay
-        for (int i=0; i<NUM_DISPLAYS; i++) {
-          unsigned int color = (i == display_cursor) ? SSD1306_BLACK : SSD1306_WHITE;
-
-          displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
-          displays[i].ctx->fillRect(4, 4, SCREEN_WIDTH-4, SCREEN_HEIGHT-4, SSD1306_INVERSE);
-        }
+        drawSelectionOverlay();
       }
     }
 
     else {
-      if (type == CLICK) { selection_mode = true; }
+      if (type == CLICK) {
+        selection_mode = true;
+        drawSelectionOverlay();
+      }
       else {
         // TODO: UPDATE VOLUME
         // Will eventually be on a timeout
