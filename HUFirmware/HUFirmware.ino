@@ -223,12 +223,15 @@ int display_cursor = 0;
 
 void drawSelectionOverlay() {
   for (int i=0; i<NUM_DISPLAYS; i++) {
-    const unsigned int color = (i == display_cursor) ? SSD1306_WHITE : SSD1306_BLACK;
+    if (i != display_cursor) {
+      drawDisplay(displays[i]);
+      return;
+    }
 
-    displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, 4, color);
-    displays[i].ctx->fillRect(0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT-4, color);
-    displays[i].ctx->fillRect(0, 0, SCREEN_HEIGHT, 4, color);
-    displays[i].ctx->fillRect(SCREEN_WIDTH, 0, SCREEN_WIDTH-4, SCREEN_HEIGHT, color);
+    displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, 4, SSD1306_WHITE);
+    displays[i].ctx->fillRect(0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT-4, SSD1306_WHITE);
+    displays[i].ctx->fillRect(0, 0, 4, SCREEN_HEIGHT, SSD1306_WHITE);
+    displays[i].ctx->fillRect(SCREEN_WIDTH, 0, SCREEN_WIDTH-4, SCREEN_HEIGHT, SSD1306_WHITE);
     displays[i].ctx->display();
   }
 }
