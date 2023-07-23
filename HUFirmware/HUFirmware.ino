@@ -192,21 +192,22 @@ void serialEvent() {                      //runs asyncronously with main loop
   static int data_index = 0;                 // Index for storing incoming data
 
   while (Serial.available()) {                  //check if serial data is in buffer
-    char serialbuff = (char)Serial.read();      //set input char to serial buffer
+    char serialBuff = (char)Serial.read();      //set input char to serial buffer
 
-    if (serialbuff == '\n') {                   //check if serial communication frame has been terminated
+    if (serialBuff == '\n') {                   //check if serial communication frame has been terminated
       incoming_data[data_index] = '\0';             // Terminate the string
       SERIAL_RECIEVED = true;
       data_index = 0;                              //Reset data index
     } else if (data_index < MAX_DATA_LENGTH) {
-      incoming_data[data_index] = SerialBuff;       //store input char at IDX to IncomingData
+      incoming_data[data_index] = serialBuff;       //store input char at IDX to IncomingData
       data_index++;                                //inc data index
     }
   }
+
+  if(SERIAL_RECIEVED){onSerial();}
 }
 
-void loop() {
-  if(SERIAL_RECIEVED){
+void onSerial(){
     //Check if user wants to move cursor, and which direction
     if(!strcmp(incoming_data,"r")){top_display.cursor_index += 1;}
     else if(!strcmp(incoming_data,"l")){top_display.cursor_index -= 1;}
@@ -220,5 +221,8 @@ void loop() {
     display.clearDisplay();
     drawDisplay(top_display);
     display.display();
-  }
+}
+
+void loop() {
+
 }
