@@ -85,7 +85,7 @@ const struct Display displays[NUM_DISPLAYS] = {
 
 
 
-void drawStatMenu(Display& display) {
+void drawStatMenu(Display &display) {
     const bool flipped = (display.ctx->getRotation() == 2);
     const int offset = flipped ? 0 : 16;
 
@@ -139,16 +139,57 @@ void drawStatMenu(Display& display) {
   }
 }
 
+void drawModeMenu (Display &display) {
+  const char* mode_names[5] = {
+    "STAT SELECT",
+    "VOLUME",
+    "BARS (LARGE)",
+    "BARS (SMALL)",
+    "GRAPH"
+  };
+
+  // PLACEHOLDER
+  display.ctx->setTextColor(SSD1306_WHITE);
+  display.ctx->setCursor(4, 16);
+  display.ctx->println("MENU");
+  display.ctx->setCursor(4, 26);
+  display.ctx->println(mode_names[display.cursor_index]);
+}
+
+void drawVolume (Display &display) {
+  display.ctx->setTextColor(SSD1306_WHITE);
+  display.ctx->setCursor(4, 0);
+  display.ctx->println("VOLUME");
+}
+
+void drawBigStatus (Display &display) {
+  display.ctx->setTextColor(SSD1306_WHITE);
+  display.ctx->setCursor(4, 0);
+  display.ctx->println("BARS (LARGE)");
+}
+
+void drawSmallStatus (Display &display) {
+  display.ctx->setTextColor(SSD1306_WHITE);
+  display.ctx->setCursor(4, 0);
+  display.ctx->println("BARS (SMALL)");
+}
+
+void drawGraph (Display &display) {
+  display.ctx->setTextColor(SSD1306_WHITE);
+  display.ctx->setCursor(4, 0);
+  display.ctx->println("GRAPH");
+}
+
 
 void drawDisplay(Display &display) {   //draw current mode onto correct display
   display.clearDisplay();
   switch (display.activeMode) {
-    // case MODEMENU: drawModeMenu(display); break;
+    case MODEMENU: drawModeMenu(display); break;
     case STATMENU: drawStatMenu(display); break;
-    // case VOLUME: drawVolume(display); break;
-    // case BIGSTATUS: drawBigStatus(display); break;
-    // case SMALLSTATUS: drawSmallStatus(display); break;
-    // case GRAPH: drawGraph(display); break;
+    case VOLUME: drawVolume(display); break;
+    case BIGSTATUS: drawBigStatus(display); break;
+    case SMALLSTATUS: drawSmallStatus(display); break;
+    case GRAPH: drawGraph(display); break;
   }
   display.display();
 }
@@ -230,7 +271,7 @@ void handleStatMenu(InputType type) {
 }
 
 void handleInput(InputType type) {
-  if (active_display) {
+  if (active_display && !selection_mode) {
     switch (active_display->active_mode) {
       case MODEMENU: handleModeMenu(type); break;
       case STATMENU: handleStatMenu(type); break;
