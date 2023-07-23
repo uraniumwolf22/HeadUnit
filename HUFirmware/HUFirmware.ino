@@ -224,12 +224,11 @@ int display_cursor = 0;
 void drawSelectionOverlay() {
   for (int i=0; i<NUM_DISPLAYS; i++) {
     const unsigned int color = (i == display_cursor) ? SSD1306_WHITE : SSD1306_BLACK;
-    const int offset_top = (displays[i].ctx->getRotation() == 2) ? 0 : 16;
 
-    displays[i].ctx->fillRect(0, offset, SCREEN_WIDTH, offset+4, color);
-    displays[i].ctx->fillRect(0, 112+offset, SCREEN_WIDTH, 108+offset, color);
-    displays[i].ctx->fillRect(0, offset, 4, 112+offset, color);
-    displays[i].ctx->fillRect(SCREEN_WIDTH, offset, SCREEN_WIDTH-4, 112+offset, color);
+    displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, 4, color);
+    displays[i].ctx->fillRect(0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT-4, color);
+    displays[i].ctx->fillRect(0, 0, SCREEN_HEIGHT, 4, color);
+    displays[i].ctx->fillRect(SCREEN_WIDTH, 0, SCREEN_WIDTH-4, SCREEN_HEIGHT, color);
     displays[i].ctx->display();
   }
 }
@@ -258,7 +257,7 @@ void handleModeMenu(InputType type) {
 void handleStatMenu(InputType type) {
   if (type == CLICK) {
     if (active_display->cursor_index == -1) {
-      active_display->cursor_index = active_display->STATMENU;
+      active_display->cursor_index = STATMENU;
       active_display->active_mode = MODEMENU;
     }
     else {
