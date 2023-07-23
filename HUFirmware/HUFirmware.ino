@@ -225,13 +225,13 @@ void drawSelectionOverlay() {
   for (int i=0; i<NUM_DISPLAYS; i++) {
     if (i != display_cursor) {
       drawDisplay(displays[i]);
-      return;
+      continue;
     }
 
-    displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, 4, SSD1306_WHITE);
-    displays[i].ctx->fillRect(0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT-4, SSD1306_WHITE);
-    displays[i].ctx->fillRect(0, 0, 4, SCREEN_HEIGHT, SSD1306_WHITE);
-    displays[i].ctx->fillRect(SCREEN_WIDTH, 0, SCREEN_WIDTH-4, SCREEN_HEIGHT, SSD1306_WHITE);
+    displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, 8, SSD1306_WHITE);
+    displays[i].ctx->fillRect(0, SCREEN_HEIGHT-8, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
+    displays[i].ctx->fillRect(0, 0, 8, SCREEN_HEIGHT, SSD1306_WHITE);
+    displays[i].ctx->fillRect(SCREEN_WIDTH-8, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
     displays[i].ctx->display();
   }
 }
