@@ -137,6 +137,7 @@ void drawStatMenu(Display& display) {
 
 
 void drawDisplay(Display &display) {   //draw current mode onto correct display
+  display.ctx->clearDisplay();
   switch (display.activeMode) {
     // case MODEMENU: drawModeMenu(display); break;
     case STATMENU: drawStatMenu(display); break;
@@ -145,6 +146,7 @@ void drawDisplay(Display &display) {   //draw current mode onto correct display
     // case SMALLSTATUS: drawSmallStatus(display); break;
     // case GRAPH: drawGraph(display); break;
   }
+  display.ctx->display();
 }
 
 struct Display top_display;
@@ -204,7 +206,7 @@ void serialEvent() {                      //runs asyncronously with main loop
     }
   }
 
-  if(SERIAL_RECIEVED){onSerial();}
+  if(SERIAL_RECIEVED && DEBUG_MODE){onSerial();}
 }
 
 void onSerial(){
@@ -218,9 +220,7 @@ void onSerial(){
 
     //Render the top display
     SERIAL_RECIEVED = false;
-    display.clearDisplay();
     drawDisplay(top_display);
-    display.display();
 }
 
 void loop() {
