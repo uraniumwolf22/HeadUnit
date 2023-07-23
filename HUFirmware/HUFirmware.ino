@@ -37,13 +37,13 @@ enum InputType {
   LEFT,
   RIGHT,
   CLICK
-}
+};
 
 struct Display {        //struct to store display proprties
   Adafruit_SSD1306* ctx;        //I2C Display object
   char serial_address;
-  DisplayMode activeMode;      //display mode that is currently being rendered
-  DisplayMode displayMode;     //last status screen that was being rendered
+  DisplayMode active_mode;      //display mode that is currently being rendered
+  DisplayMode display_mode;     //last status screen that was being rendered
 
   int cursor_index;
   //Active statistics masks
@@ -63,7 +63,7 @@ struct Statistic {    //stores individual statistic properties
 };
 
 
-const struct Statistic stats[NUM_STATS] = {   //list and default values of current supported statistics
+struct Statistic stats[NUM_STATS] = {   //list and default values of current supported statistics
   {0x5C, "OIL", "F", 0, 100, 80, 0},
   {0x05, "COOL", "F", 0, 100, 80, 0},
   {0x0E, "ADV", "deg", 0, 100, 80, 0},
@@ -78,10 +78,10 @@ const struct Statistic stats[NUM_STATS] = {   //list and default values of curre
 Adafruit_SSD1306 display1(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-const struct Display displays[NUM_DISPLAYS] = {
+struct Display displays[NUM_DISPLAYS] = {
   {&display1, 0x3D, STATMENU, SMALLSTATUS, -1, {0}, {0}, {0}},
   {&display2, 0x3C, STATMENU, SMALLSTATUS, -1, {0}, {0}, {0}},
-}
+};
 
 
 
@@ -100,7 +100,7 @@ void drawStatMenu(Display &display) {
         display.ctx->getTextBounds(stats[i].name, 0, 0,NULL, NULL, &text_width, NULL);
         display.ctx->setCursor(x + (32 - text_width) / 2, y + 2);  // Center text in bounding box
 
-        if (getSelectionMask(&display)[i]) {
+        if (getSelectionMask(display)[i]) {
             // Draw highlighted text
             display.ctx->fillRect(x, y, 32, 12, SSD1306_WHITE);
             display.ctx->setTextColor(SSD1306_BLACK);
@@ -182,8 +182,8 @@ void drawGraph (Display &display) {
 
 
 void drawDisplay(Display &display) {   //draw current mode onto correct display
-  display.clearDisplay();
-  switch (display.activeMode) {
+  display.ctx->clearDisplay();
+  switch (display.active_mode) {
     case MODEMENU: drawModeMenu(display); break;
     case STATMENU: drawStatMenu(display); break;
     case VOLUME: drawVolume(display); break;
@@ -191,22 +191,22 @@ void drawDisplay(Display &display) {   //draw current mode onto correct display
     case SMALLSTATUS: drawSmallStatus(display); break;
     case GRAPH: drawGraph(display); break;
   }
-  display.display();
+  display.ctx->display();
 }
 
 
-int* getSelectionMask(Display &display) {
+bool* getSelectionMask(Display &display) {
   switch (display.display_mode) {
     case BIGSTATUS: return display.bigstatus_mask; break;
     case SMALLSTATUS: return display.smallstatus_mask; break;
     case GRAPH: return display.graph_mask; break;
     default:
-      int empty[NUM_STATS] = {0};
+      bool empty[NUM_STATS] = {false};
       return empty;
   }
 }
 
-int getMaskSize(int &mask, int size) {
+int getMaskSize(bool* &mask, int size) {
   int count = 0;
   for (int i=0; i<size; i++) {
     if (mask[i]) { count++; }
@@ -234,8 +234,8 @@ void handleModeMenu(InputType type) {
       active_display->cursor_index++ :
       active_display->cursor_index-- ;
 
-    if (display->cursor_index > 5) { display.cursor_index = 1; }
-    else if (display.cursor_index < 1) { display.cursor_index = 5; }
+    if (active_display->cursor_index > 5) { active_display->cursor_index = 1; }
+    else if (active_display->cursor_index < 1) { active_display->cursor_index = 5; }
   }
 }
 
@@ -245,13 +245,19 @@ void handleStatMenu(InputType type) {
       active_display->active_mode = MODEMENU;
     }
     else {
+      bool* selection = getSelectionMask(*active_display);
       // Deselect if active
-      if (active_display->selection[active_display->cursor_index]) {
-        active_display->selection[active_display->cursor_index] = false;
+      if (selection[active_display->cursor_index]) {
+        selection[active_display->cursor_index] = false;
       }
       // Select if inactive & maximum is not reached
       else {
-        const int num_selected = getMaskSize(getSelectionMask(active_display), NUM_STATS);
+        const int num_selected = getMaskSize(selection, NUM_STATS);
+        const int limits[] = {0, 0, 0, 2, 4, 1};
+
+        if (num_selected < limits[active_display->display_mode]) {
+          selection[active_display->cursor_index] = true;
+        }
       }
 
     }
@@ -281,7 +287,7 @@ void handleInput(InputType type) {
     if (selection_mode) {
       if (type == CLICK) {
         selection_mode = false;
-        active_display = displays[display_cursor];
+        active_display = &displays[display_cursor];
         active_display->cursor_index = active_display->active_mode;
         active_display->display_mode = active_display->active_mode;
         active_display->active_mode = MODEMENU;
@@ -349,7 +355,7 @@ void serialEvent() {                      //runs asyncronously with main loop
       SERIAL_RECIEVED = true;
       data_index = 0;                              //Reset data index
     } else if (data_index < MAX_DATA_LENGTH) {
-      incoming_data[data_index] = SerialBuff;       //store input char at IDX to IncomingData
+      incoming_data[data_index] = serialbuff;       //store input char at IDX to IncomingData
       data_index++;                                //inc data index
     }
   }
@@ -357,19 +363,14 @@ void serialEvent() {                      //runs asyncronously with main loop
 
 void loop() {
   if(SERIAL_RECIEVED){
-    //Check if user wants to move cursor, and which direction
-    if(!strcmp(incoming_data,"r")){top_display.cursor_index += 1;}
-    else if(!strcmp(incoming_data,"l")){top_display.cursor_index -= 1;}
+    if(!strcmp(incoming_data,"r")){ handleInput(RIGHT); }
+    else if(!strcmp(incoming_data,"l")){ handleInput(LEFT); }
+    else if(!strcmp(incoming_data,"s")){ handleInput(CLICK); }
 
-    if(!strcmp(incoming_data,"s")){  //has the select button been pressed
-      top_display.smallstatus_mask[top_display.cursor_index] ^= true;
-    }
-
-    //Render the top display
     SERIAL_RECIEVED = false;
 
     for (int i=0; i<NUM_DISPLAYS; i++) {
-      drawDisplay(&displays[i]);
+      drawDisplay(displays[i]);
     }
   }
 }
