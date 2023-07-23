@@ -282,8 +282,9 @@ void handleInput(InputType type) {
       if (type == CLICK) {
         selection_mode = false;
         active_display = displays[display_cursor];
+        active_display->cursor_index = active_display->active_mode;
         active_display->display_mode = active_display->active_mode;
-        active_display->display_mode = MODEMENU;
+        active_display->active_mode = MODEMENU;
       }
 
       else {
