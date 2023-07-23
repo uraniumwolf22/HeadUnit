@@ -6,15 +6,14 @@
 
 #define BOOT_DELAY 1000
 #define SKIP_BOOT_SEQ false
-#define SCREEN_WIDTH 128     //I think you can derive this one..
+#define NUM_DISPLAYS 2
+#define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
 #define MAX_DATA_LENGTH 200 //set maximum data length for serial
 #define NUM_STATS 8
 
 #define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3D
-#define SCREEN_ADDRESS_2 0x3C
 
 #define ENC_A 33  //encoder pin A
 #define ENC_B 32
@@ -34,8 +33,15 @@ enum DisplayMode {
   GRAPH
 };
 
+enum InputType {
+  LEFT,
+  RIGHT,
+  CLICK
+}
+
 struct Display {        //struct to store display proprties
   Adafruit_SSD1306* ctx;        //I2C Display object
+  char serial_address;
   DisplayMode activeMode;      //display mode that is currently being rendered
   DisplayMode displayMode;     //last status screen that was being rendered
 
@@ -56,6 +62,7 @@ struct Statistic {    //stores individual statistic properties
   int value;
 };
 
+
 const struct Statistic stats[NUM_STATS] = {   //list and default values of current supported statistics
   {0x5C, "OIL", "F", 0, 100, 80, 0},
   {0x05, "COOL", "F", 0, 100, 80, 0},
@@ -68,21 +75,19 @@ const struct Statistic stats[NUM_STATS] = {   //list and default values of curre
 };
 
 
+Adafruit_SSD1306 display1(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+const struct Display displays[NUM_DISPLAYS] = {
+  {&display1, 0x3D, STATMENU, SMALLSTATUS, -1, {0}, {0}, {0}},
+  {&display2, 0x3C, STATMENU, SMALLSTATUS, -1, {0}, {0}, {0}},
+}
+
+
 
 void drawStatMenu(Display& display) {
     const bool flipped = (display.ctx->getRotation() == 2);
     const int offset = flipped ? 0 : 16;
-
-    // Choose selection mask based on current display mode
-    bool selection[NUM_STATS];
-    switch (display.displayMode) {
-    case BIGSTATUS:
-        memcpy(selection, display.bigstatus_mask, sizeof(int) * NUM_STATS); break;
-    case SMALLSTATUS:
-        memcpy(selection, display.smallstatus_mask, sizeof(int) * NUM_STATS); break;
-    case GRAPH:
-        memcpy(selection, display.graph_mask, sizeof(int) * NUM_STATS); break;
-    }
 
     display.ctx->setTextSize(1); // 7px tall (8 is ideal)
 
@@ -95,7 +100,7 @@ void drawStatMenu(Display& display) {
         display.ctx->getTextBounds(stats[i].name, 0, 0,NULL, NULL, &text_width, NULL);
         display.ctx->setCursor(x + (32 - text_width) / 2, y + 2);  // Center text in bounding box
 
-        if (selection[i]) {
+        if (getSelectionMask(&display)[i]) {
             // Draw highlighted text
             display.ctx->fillRect(x, y, 32, 12, SSD1306_WHITE);
             display.ctx->setTextColor(SSD1306_BLACK);
@@ -135,8 +140,8 @@ void drawStatMenu(Display& display) {
 }
 
 
-
 void drawDisplay(Display &display) {   //draw current mode onto correct display
+  display.clearDisplay();
   switch (display.activeMode) {
     // case MODEMENU: drawModeMenu(display); break;
     case STATMENU: drawStatMenu(display); break;
@@ -145,43 +150,146 @@ void drawDisplay(Display &display) {   //draw current mode onto correct display
     // case SMALLSTATUS: drawSmallStatus(display); break;
     // case GRAPH: drawGraph(display); break;
   }
+  display.display();
 }
 
-struct Display top_display;
-struct Display low_display;
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); //OLED Display object
-Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+int* getSelectionMask(Display &display) {
+  switch (display.display_mode) {
+    case BIGSTATUS: return display.bigstatus_mask; break;
+    case SMALLSTATUS: return display.smallstatus_mask; break;
+    case GRAPH: return display.graph_mask; break;
+    default:
+      int empty[NUM_STATS] = {0};
+      return empty;
+  }
+}
+
+int getMaskSize(int &mask, int size) {
+  int count = 0;
+  for (int i=0; i<size; i++) {
+    if (mask[i]) { count++; }
+  }
+  return count;
+}
+
+Display* active_display = NULL;
+bool selection_mode = false;
+int display_cursor = 0;
+
+void handleModeMenu(InputType type) {
+  if (type == CLICK) {
+    // Set currently selected mode
+    active_display->active_mode = active_display->cursor_index;
+    if (active_display->active_mode != STATMENU) {
+      active_display = NULL;
+    }
+  }
+
+  else {
+    // Change selected mode
+    // Cursor index <-> DisplayMode, exluding 0 (current mode)
+    type == RIGHT ?
+      active_display->cursor_index++ :
+      active_display->cursor_index-- ;
+
+    if (display->cursor_index > 5) { display.cursor_index = 1; }
+    else if (display.cursor_index < 1) { display.cursor_index = 5; }
+  }
+}
+
+void handleStatMenu(InputType type) {
+  if (type == CLICK) {
+    if (active_display->cursor_index == -1) {
+      active_display->active_mode = MODEMENU;
+    }
+    else {
+      // Deselect if active
+      if (active_display->selection[active_display->cursor_index]) {
+        active_display->selection[active_display->cursor_index] = false;
+      }
+      // Select if inactive & maximum is not reached
+      else {
+        const int num_selected = getMaskSize(getSelectionMask(active_display), NUM_STATS);
+      }
+
+    }
+  }
+
+  else {
+    // Change cursor position
+    // Cursor index <-> stats index, -1 indicates "Back" button
+    type == RIGHT ?
+      active_display->cursor_index++ :
+      active_display->cursor_index-- ;
+
+    const int max = min(NUM_STATS, 16);
+    if (active_display->cursor_index > max) { active_display->cursor_index = -1; }
+    else if (active_display->cursor_index < -1) { active_display->cursor_index = max-1; }
+  }
+}
+
+void handleInput(InputType type) {
+  if (active_display) {
+    switch (active_display->active_mode) {
+      case MODEMENU: handleModeMenu(type); break;
+      case STATMENU: handleStatMenu(type); break;
+    }
+  }
+  else {
+    if (selection_mode) {
+      if (type == CLICK) {
+        selection_mode = false;
+        active_display = displays[display_cursor];
+        active_display->display_mode = active_display->active_mode;
+        active_display->display_mode = MODEMENU;
+      }
+
+      else {
+        type == RIGHT ?
+          display_cursor++ :
+          display_cursor-- ;
+
+        if (display_cursor > NUM_DISPLAYS-1) { display_cursor = 0; }
+        else if (display_cursor < 0) { display_cursor = NUM_DISPLAYS-1; }
+
+        // Draw selection overlay
+        for (int i=0; i<NUM_DISPLAYS; i++) {
+          unsigned int color = (i == display_cursor) ? SSD1306_BLACK : SSD1306_WHITE;
+
+          displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+          displays[i].ctx->fillRect(4, 4, SCREEN_WIDTH-4, SCREEN_HEIGHT-4, SSD1306_INVERSE);
+        }
+      }
+    }
+
+    else {
+      if (type == CLICK) { selection_mode = true; }
+      else {
+        // TODO: UPDATE VOLUME
+        // Will eventually be on a timeout
+        displays[0].active_mode = VOLUME;
+      }
+    }
+  }
+}
+
 
 void setup() {
 
   Serial.begin(115200);
 
-  display.setRotation(2);
-  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) { //initialize display
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;);
+  // display.setRotation(2);
+
+  for (int i=0; i<NUM_DISPLAYS; i++) {
+    if (!displays[i].ctx->begin(SSD1306_SWITCHCAPVCC, displays[i].serial_address)) {
+      Serial.println(F("SSD1306 allocation failed"));
+      for (;;);
+    }
+
+    displays[i].ctx->clearDisplay();
   }
 
-    if (!display2.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS_2)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;);
-  }
-  top_display.ctx = &display;
-  low_display.ctx = &display2;
-
-
-  //JUST FOR TESTING
-
-  //Initial values
-  top_display.displayMode = SMALLSTATUS;
-  top_display.activeMode = STATMENU;
-  top_display.cursor_index = 1;
-  bool test_mask[NUM_STATS] = {0,0,0,0,0,0,0,0};   //set Initial Status mask
-  memcpy(top_display.smallstatus_mask, test_mask, sizeof(test_mask));
-
-  display.clearDisplay();
-  display2.clearDisplay();
 }
 
 //Yeah Yeah there are tons of comments becuse this one hurts my small brain
@@ -217,8 +325,9 @@ void loop() {
 
     //Render the top display
     SERIAL_RECIEVED = false;
-    display.clearDisplay();
-    drawDisplay(top_display);
-    display.display();
+
+    for (int i=0; i<NUM_DISPLAYS; i++) {
+      drawDisplay(&displays[i]);
+    }
   }
 }
