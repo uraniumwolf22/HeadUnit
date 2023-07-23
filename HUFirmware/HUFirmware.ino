@@ -130,6 +130,7 @@ void drawStatMenu(Display &display) {
   const int x = 64 - (text_width / 2);
   const int y = flipped ? 52 : 4;
 
+  display.ctx->setTextColor(SSD1306_WHITE);
   display.ctx->setCursor(x, y);
   display.ctx->println("BACK");
 
@@ -140,7 +141,7 @@ void drawStatMenu(Display &display) {
 }
 
 void drawModeMenu (Display &display) {
-  const char* mode_names[5] = {
+  const char* mode_names[] = {
     "",
     "STAT SELECT",
     "VOLUME",
@@ -281,7 +282,7 @@ void handleStatMenu(InputType type) {
       active_display->cursor_index++ :
       active_display->cursor_index-- ;
 
-    const int max = min(NUM_STATS, 16);
+    const int max = min(NUM_STATS, 16)-1;
     if (active_display->cursor_index > max) { active_display->cursor_index = -1; }
     else if (active_display->cursor_index < -1) { active_display->cursor_index = max-1; }
   }
