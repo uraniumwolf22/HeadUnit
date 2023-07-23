@@ -79,8 +79,8 @@ Adafruit_SSD1306 display1(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 struct Display displays[NUM_DISPLAYS] = {
-  {&display1, 0x3D, STATMENU, SMALLSTATUS, -1, {0}, {0}, {0}},
-  {&display2, 0x3C, STATMENU, SMALLSTATUS, -1, {0}, {0}, {0}},
+  {&display1, 0x3D, SMALLSTATUS, SMALLSTATUS, -1, {0}, {0}, {0}},
+  {&display2, 0x3C, SMALLSTATUS, SMALLSTATUS, -1, {0}, {0}, {0}},
 };
 
 
@@ -141,6 +141,7 @@ void drawStatMenu(Display &display) {
 
 void drawModeMenu (Display &display) {
   const char* mode_names[5] = {
+    "",
     "STAT SELECT",
     "VOLUME",
     "BARS (LARGE)",
@@ -343,6 +344,7 @@ void setup() {
     }
 
     displays[i].ctx->clearDisplay();
+    drawDisplay(displays[i]);
   }
 
 }
@@ -376,8 +378,10 @@ void loop() {
 
     SERIAL_RECIEVED = false;
 
-    for (int i=0; i<NUM_DISPLAYS; i++) {
-      drawDisplay(displays[i]);
+    if (!selection_mode) {
+      for (int i=0; i<NUM_DISPLAYS; i++) {
+        drawDisplay(displays[i]);
+      }
     }
   }
 }
