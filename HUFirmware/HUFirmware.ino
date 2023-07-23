@@ -11,6 +11,7 @@
 #define SCREEN_HEIGHT 64
 
 #define MAX_DATA_LENGTH 200 //set maximum data length for serial
+#define NUM_MODES 6
 #define NUM_STATS 8
 
 #define OLED_RESET -1
@@ -141,7 +142,7 @@ void drawStatMenu(Display &display) {
 }
 
 void drawModeMenu (Display &display) {
-  const char* mode_names[] = {
+  const char* mode_names[NUM_MODES] = {
     "",
     "STAT SELECT",
     "VOLUME",
@@ -222,10 +223,13 @@ int display_cursor = 0;
 
 void drawSelectionOverlay() {
   for (int i=0; i<NUM_DISPLAYS; i++) {
-    unsigned int color = (i == display_cursor) ? SSD1306_BLACK : SSD1306_WHITE;
+    const unsigned int color = (i == display_cursor) ? SSD1306_WHITE : SSD1306_BLACK;
+    const int offset_top = (displays[i].ctx->getRotation() == 2) ? 0 : 16;
 
-    displays[i].ctx->fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
-    displays[i].ctx->fillRect(4, 4, SCREEN_WIDTH-4, SCREEN_HEIGHT-4, SSD1306_INVERSE);
+    displays[i].ctx->fillRect(0, offset, SCREEN_WIDTH, offset+4, color);
+    displays[i].ctx->fillRect(0, 112+offset, SCREEN_WIDTH, 108+offset, color);
+    displays[i].ctx->fillRect(0, offset, 4, 112+offset, color);
+    displays[i].ctx->fillRect(SCREEN_WIDTH, offset, SCREEN_WIDTH-4, 112+offset, color);
     displays[i].ctx->display();
   }
 }
@@ -246,14 +250,15 @@ void handleModeMenu(InputType type) {
       active_display->cursor_index++ :
       active_display->cursor_index-- ;
 
-    if (active_display->cursor_index > 5) { active_display->cursor_index = 1; }
-    else if (active_display->cursor_index < 1) { active_display->cursor_index = 5; }
+    if (active_display->cursor_index > NUM_MODES-1) { active_display->cursor_index = 1; }
+    else if (active_display->cursor_index < 1) { active_display->cursor_index = NUM_MODES-1; }
   }
 }
 
 void handleStatMenu(InputType type) {
   if (type == CLICK) {
     if (active_display->cursor_index == -1) {
+      active_display->cursor_index = active_display->STATMENU;
       active_display->active_mode = MODEMENU;
     }
     else {
@@ -265,7 +270,12 @@ void handleStatMenu(InputType type) {
       // Select if inactive & maximum is not reached
       else {
         const int num_selected = getMaskSize(selection, NUM_STATS);
-        const int limits[] = {0, 0, 0, 2, 4, 1};
+
+        // Set maximum selection sizes
+        int limits[NUM_MODES] = {0};
+        limits[BIGSTATUS] = 2;
+        limits[SMALLSTATUS] = 4;
+        limits[GRAPH] = 1;
 
         if (num_selected < limits[active_display->display_mode]) {
           selection[active_display->cursor_index] = true;
@@ -284,7 +294,7 @@ void handleStatMenu(InputType type) {
 
     const int max = min(NUM_STATS, 16)-1;
     if (active_display->cursor_index > max) { active_display->cursor_index = -1; }
-    else if (active_display->cursor_index < -1) { active_display->cursor_index = max-1; }
+    else if (active_display->cursor_index < -1) { active_display->cursor_index = max; }
   }
 }
 
