@@ -327,7 +327,7 @@ void setup() {
 
   Serial.begin(115200);
 
-  // display.setRotation(2);
+  displays[0].ctx->setRotation(2);
 
   for (int i=0; i<NUM_DISPLAYS; i++) {
     if (!displays[i].ctx->begin(SSD1306_SWITCHCAPVCC, displays[i].serial_address)) {
