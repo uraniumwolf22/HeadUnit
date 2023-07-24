@@ -207,6 +207,7 @@ bool* getSelectionMask(Display &display) {
       bool empty[NUM_STATS] = {false};
       return empty;
   }
+  display.ctx->display();
 }
 
 int getMaskSize(bool* &mask, int size) {
@@ -384,7 +385,7 @@ void serialEvent() {                      //runs asyncronously with main loop
 }
 
 void loop() {
-  if(SERIAL_RECIEVED){
+  if(SERIAL_RECIEVED && DEBUG_MODE){
     if(!strcmp(incoming_data,"r")){ handleInput(RIGHT); }
     else if(!strcmp(incoming_data,"l")){ handleInput(LEFT); }
     else if(!strcmp(incoming_data,"s")){ handleInput(CLICK); }
