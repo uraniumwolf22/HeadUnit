@@ -343,8 +343,10 @@ void handleInput(InputType type) {
         drawSelectionOverlay();
       }
       else {
-        // TODO: UPDATE VOLUME
-        // Will eventually be on a timeout
+        type == RIGHT ?
+          handleVolume(UP) :
+          handleVolume(DOWN);
+
         displays[0].active_mode = VOLUME;
       }
     }
