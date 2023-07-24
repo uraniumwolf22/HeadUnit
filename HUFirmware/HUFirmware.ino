@@ -21,6 +21,8 @@
 #define ENC_SW
 
 #define DEBUG_MODE true
+#define VOLUME_ENABLE
+
 
 
 enum DisplayMode {
@@ -38,6 +40,11 @@ enum InputType {
   LEFT,
   RIGHT,
   CLICK
+};
+
+enum Volume {
+  UP,
+  DOWN
 };
 
 struct Display {        //struct to store display proprties
@@ -344,6 +351,14 @@ void handleInput(InputType type) {
   }
 }
 
+void handleVolume(Volume volume){
+  if(volume == UP){
+    Serial.println("1");
+  }
+  if(volume == DOWN){
+    Serial.println("0");
+  }
+}
 
 void setup() {
 
@@ -389,6 +404,9 @@ void loop() {
     if(!strcmp(incoming_data,"r")){ handleInput(RIGHT); }
     else if(!strcmp(incoming_data,"l")){ handleInput(LEFT); }
     else if(!strcmp(incoming_data,"s")){ handleInput(CLICK); }
+
+    else if(!strcmp(incoming_data,"u")){ handleVolume(UP); }
+    else if(!strcmp(incoming_data,"d")){ handleVolume(DOWN); }
 
     SERIAL_RECIEVED = false;
 
