@@ -2,6 +2,7 @@
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <EEPROM.h>
 #include <math.h>
 
 #define BOOT_DELAY 1000
@@ -92,6 +93,30 @@ struct Display displays[NUM_DISPLAYS] = {
 };
 
 
+void writeMasks() {
+  for (int i=0; i<NUM_DISPLAYS; i++) {
+    for (int j=0; j<NUM_STATS; j++) {
+      int flag = 0;
+      if (displays[i].bigstatus_mask[j]) { flag | 1; }
+      if (displays[i].smallstatus_mask[j]) { flag | 2; }
+      if (displays[i].graph_mask[j]) { flag | 4; }
+
+      EEPROM.update(j + ((i+1)*0x40), flag);
+    }
+  }
+}
+
+void readMasks() {
+  for (int i=0; i<NUM_DISPLAYS; i++) {
+    for (int j=0; j<NUM_STATS; j++) {
+      int flag = EEPROM.read(j + ((i+1)*0x40));
+
+      displays[i].bigstatus_mask[j] = flag & 1;
+      displays[i].smallstatus_mask[j] = flag & 2;
+      displays[i].graph_mask[j] = flag & 3;
+    }
+  }
+}
 
 void drawStatMenu(Display &display) {
     const bool flipped = (display.ctx->getRotation() == 2);
